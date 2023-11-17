@@ -4,12 +4,10 @@ document.addEventListener('DOMContentLoaded', function() {
     let drawing = false, moving = false, duplicating = false;
     let currentLine = null, selectedLine = null;
     let lines = [];
-    let circles = []; // Array to store circles
     let mode = 'draw'; // Possible values: 'draw', 'move'
     let movingEnd = 'none'; // Possible values: 'start', 'end', 'none'
     let lineWidth = parseInt(document.getElementById('lineWidth').value, 10); // Get initial line width
     let selectedLineIndex = -1; // Index of the selected line for deletion
-    let selectedCircleIndex = -1;  // Index of the selected circle
     let lineColor = document.getElementById('lineColor').value; // Get initial line color
     let lineStyle = document.getElementById('lineStyle').value; // Get initial line style
     let lineOpacity = parseFloat(document.getElementById('lineOpacity').value); // Get initial line opacity
@@ -112,14 +110,6 @@ document.getElementById('moveLineBackward').addEventListener('click', moveLineBa
             document.getElementById('annotationText').value = ''; // Clear the input field
         }
     });
-
-    document.getElementById('convertToCircleButton').addEventListener('click', function() {
-        if (selectedLineIndex !== -1) {
-            convertLineToCircle(selectedLineIndex);
-        }
-    });
-    
-
      
 
     function drawEconomicGraph() {
@@ -211,36 +201,12 @@ document.getElementById('moveLineBackward').addEventListener('click', moveLineBa
     }
     
     function annotateLine(lineIndex, text) {
-        if (lineIndex >= 0 && lineIndex < lines.length && !lines[lineIndex].locked) {
-            lines[lineIndex].annotation = text;
-            redrawCanvas();
-        }
+    if (lineIndex >= 0 && lineIndex < lines.length && !lines[lineIndex].locked) {
+        lines[lineIndex].annotation = text;
+        redrawCanvas();
     }
-    
-    function convertLineToCircle(lineIndex) {
-        if (lineIndex >= 0 && lineIndex < lines.length) {
-            let line = lines[lineIndex];
-            let midX = (line.x1 + line.x2) / 2;
-            let midY = (line.y1 + line.y2) / 2;
-            let radius = Math.sqrt(Math.pow(line.x2 - line.x1, 2) + Math.pow(line.y2 - line.y1, 2)) / 2;
-    
-            // Create a circle object
-            let circle = {
-                x: midX,
-                y: midY,
-                radius: radius,
-                color: line.color,
-                opacity: line.opacity
-            };
-    
-            circles.push(circle);
-    
-            // Optionally, remove the line or keep it
-            // lines.splice(lineIndex, 1);
-            redrawCanvas();
-        }
-    }
-    
+}
+
     
     function startDrawing(e) {
         if (mode !== 'draw' || moving || duplicating) return;
@@ -251,7 +217,7 @@ document.getElementById('moveLineBackward').addEventListener('click', moveLineBa
             width: lineWidth, color: lineColor, 
             style: lineStyle, opacity: lineOpacity,
             locked: false, // existing property
-            annotation: "",  // new property for annotation
+            annotation: ""  // new property for annotation
         };
         lines.push(currentLine);
     }
@@ -319,7 +285,6 @@ document.getElementById('moveLineBackward').addEventListener('click', moveLineBa
             redrawCanvas(); // Update the canvas to reflect the change
         }
     }
-    
     
 
     function determineMovingEnd(line, x, y) {
@@ -419,7 +384,6 @@ document.getElementById('moveLineBackward').addEventListener('click', moveLineBa
             ctx.globalAlpha = line.opacity;
             applyLineStyle(ctx, line);
     
-
             if (index === selectedLineIndex) {
                 if (line.locked) {
                     // Style for a selected and locked line
@@ -454,16 +418,6 @@ document.getElementById('moveLineBackward').addEventListener('click', moveLineBa
     
             ctx.moveTo(line.x1, line.y1);
             ctx.lineTo(line.x2, line.y2);
-            ctx.stroke();
-        });
-
-        // Draw circles
-        circles.forEach(circle => {
-            ctx.beginPath();
-            ctx.globalAlpha = circle.opacity;
-            ctx.arc(circle.x, circle.y, circle.radius, 0, 2 * Math.PI);
-            ctx.fillStyle = circle.color;
-            ctx.fill();
             ctx.stroke();
         });
     
