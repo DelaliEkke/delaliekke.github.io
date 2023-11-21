@@ -513,6 +513,7 @@ document.getElementById('moveLineBackward').addEventListener('click', moveLineBa
         }
     });
     
+    
     canvas.addEventListener('mouseup', function() {
         if (mode === 'draw') {
             stopDrawing();
@@ -522,37 +523,4 @@ document.getElementById('moveLineBackward').addEventListener('click', moveLineBa
             stopDuplicating();
         }
     });
-
-    // adding touch support
-    function handleTouchStart(e) {
-        e.preventDefault(); // Prevents default touch behaviors like scrolling
-        const touch = e.touches[0];
-        const mouseEvent = new MouseEvent("mousedown", {
-            clientX: touch.clientX,
-            clientY: touch.clientY
-        });
-        canvas.dispatchEvent(mouseEvent);
-    }
-    
-    function handleTouchMove(e) {
-        e.preventDefault();
-        const touch = e.touches[0];
-        const mouseEvent = new MouseEvent("mousemove", {
-            clientX: touch.clientX,
-            clientY: touch.clientY
-        });
-        canvas.dispatchEvent(mouseEvent);
-    }
-    
-    function handleTouchEnd(e) {
-        e.preventDefault();
-        const mouseEvent = new MouseEvent("mouseup", {});
-        canvas.dispatchEvent(mouseEvent);
-    }
-    
-    // callback
-    canvas.addEventListener("touchstart", handleTouchStart, false);
-    canvas.addEventListener("touchmove", handleTouchMove, false);
-    canvas.addEventListener("touchend", handleTouchEnd, false);
-
 });
