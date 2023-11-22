@@ -1,67 +1,65 @@
-document.addEventListener('DOMContentLoaded', function() {
-    const canvas = document.getElementById('drawingCanvas');
-    const ctx = canvas.getContext('2d');
-    let drawing = false;
+function redrawCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Function to start drawing
-    function startDrawing(x, y) {
-        drawing = true;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
+    // Draw the economic graph if it exists
+    drawEconomicGraph(); 
+
+    // Draw the grid if snapping is enabled
+    if (isSnappingEnabled) {
+        drawGrid(); 
     }
 
-    // Function to draw
-    function draw(x, y) {
-        if (!drawing) return;
-        ctx.lineTo(x, y);
+    // Draw all freehand paths
+    freehandPaths.forEach(path => {
+        ctx.beginPath();
+        ctx.strokeStyle = path.color;
+        ctx.lineWidth = path.width;
+        ctx.moveTo(path.points[0][0], path.points[0][1]);
+        path.points.forEach(([x, y], index) => {
+            if (index > 0) ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+    });
+
+    // Draw the freehand path currently being drawn, if it exists
+    if (currentPath && currentPath.points.length > 1) {
+        ctx.beginPath();
+        ctx.strokeStyle = currentPath.color;
+        ctx.lineWidth = currentPath.width;
+        ctx.moveTo(currentPath.points[0][0], currentPath.points[0][1]);
+        for (let i = 1; i < currentPath.points.length; i++) {
+            ctx.lineTo(currentPath.points[i][0], currentPath.points[i][1]);
+        }
         ctx.stroke();
     }
 
-    // Function to stop drawing
-    function stopDrawing() {
-        drawing = false;
-    }
+    // Draw all other lines
+    lines.forEach((line, index) => {
+        ctx.beginPath();
+        ctx.globalAlpha = line.opacity;
+        applyLineStyle(ctx, line);
 
-    // Function to get touch position relative to the canvas
-    function getTouchPos(canvasDom, touchEvent) {
-        var rect = canvasDom.getBoundingClientRect();
-        return {
-            x: touchEvent.touches[0].clientX - rect.left,
-            y: touchEvent.touches[0].clientY - rect.top
-        };
-    }
+        // Additional styling based on the line's status (selected, locked, etc.)
+        if (index === selectedLineIndex) {
+            // Custom styling for selected line
+        } else {
+            // Default styling
+            ctx.strokeStyle = line.color;
+            ctx.lineWidth = line.width;
+        }
 
-    // Touch event handlers
-    function handleTouchStart(e) {
-        const touchPos = getTouchPos(canvas, e);
-        startDrawing(touchPos.x, touchPos.y);
-        e.preventDefault(); // Prevent scrolling when touching the canvas
-    }
-    
-    function handleTouchMove(e) {
-        if (!drawing) return;
-        const touchPos = getTouchPos(canvas, e);
-        draw(touchPos.x, touchPos.y);
-        e.preventDefault(); // Prevent scrolling when touching the canvas
-    }
-    
-    function handleTouchEnd(e) {
-        stopDrawing();
-    }
-    
-    // Add touch event listeners
-    canvas.addEventListener("touchstart", handleTouchStart, false);
-    canvas.addEventListener("touchmove", handleTouchMove, false);
-    canvas.addEventListener("touchend", handleTouchEnd, false);
+        ctx.moveTo(line.x1, line.y1);
+        ctx.lineTo(line.x2, line.y2);
+        ctx.stroke();
 
-    // Optional: Add mouse event listeners
-    canvas.addEventListener('mousedown', function(e) {
-        startDrawing(e.offsetX, e.offsetY);
+        // Draw annotations if they exist
+        if (line.annotation) {
+            const midX = (line.x1 + line.x2) / 2;
+            const midY = (line.y1 + line.y2) / 2;
+            drawAnnotation(midX, midY, line.annotation);
+        }
     });
 
-    canvas.addEventListener('mousemove', function(e) {
-        draw(e.offsetX, e.offsetY);
-    });
-
-    canvas.addEventListener('mouseup', stopDrawing);
-});
+    // Display the current mode and selected line index
+    displayModeAndSelection();
+}

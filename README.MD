@@ -39,7 +39,7 @@ Bend/Warp: Change the line from straight to curved or to any arbitrary shape.
  
 Path Editing: Adjust the line by moving its control points if it's a Bezier curve.
  
-Snapping: Enable snapping to grid or other objects to align the line precisely.
+- Snapping: Enable snapping to grid or other objects to align the line precisely.
  
 Stroke Weight Adjustment: Change the thickness of the line.
  

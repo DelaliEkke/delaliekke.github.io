@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const canvas = document.getElementById('drawingCanvas');
     const ctx = canvas.getContext('2d');
     let drawing = false, moving = false, duplicating = false;
@@ -11,14 +11,18 @@ document.addEventListener('DOMContentLoaded', function() {
     let lineColor = document.getElementById('lineColor').value; // Get initial line color
     let lineStyle = document.getElementById('lineStyle').value; // Get initial line style
     let lineOpacity = parseFloat(document.getElementById('lineOpacity').value); // Get initial line opacity
+    let isSnappingEnabled = false;
+    let gridSize = parseInt(document.getElementById('gridSizeInput').value, 10);
+    let snapDistance = parseInt(document.getElementById('snapDistanceInput').value, 10);
+    let strokeWeight = parseInt(document.getElementById('strokeWeightSlider').value, 10);
 
     // Toggle between draw and move mode with 'm' key
-    document.addEventListener('keydown', function(e) {
+    document.addEventListener('keydown', function (e) {
         if (e.key === 'm') {
             mode = mode === 'draw' ? 'move' : (mode === 'move' ? 'duplicate' : 'draw');
             console.log(`Mode switched to: ${mode}`);
             redrawCanvas(); // Redraw the canvas without the deleted lin
-        }else if (e.key === 'd' && selectedLineIndex !== -1) {
+        } else if (e.key === 'd' && selectedLineIndex !== -1) {
             // Delete the selected line when 'd' is pressed
             lines.splice(selectedLineIndex, 1);
             selectedLineIndex = -1; // Reset selected line index
@@ -26,91 +30,151 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-   // Function to check if two lines are in contact
-   function linesAreInContact(line1, line2) {
-    function checkIntersection(lineA, lineB) {
-        const s1_x = lineA.x2 - lineA.x1;
-        const s1_y = lineA.y2 - lineA.y1;
-        const s2_x = lineB.x2 - lineB.x1;
-        const s2_y = lineB.y2 - lineB.y1;
+    // Function to check if two lines are in contact
+    function linesAreInContact(line1, line2) {
+        function checkIntersection(lineA, lineB) {
+            const s1_x = lineA.x2 - lineA.x1;
+            const s1_y = lineA.y2 - lineA.y1;
+            const s2_x = lineB.x2 - lineB.x1;
+            const s2_y = lineB.y2 - lineB.y1;
 
-        const s = (-s1_y * (lineA.x1 - lineB.x1) + s1_x * (lineA.y1 - lineB.y1)) / (-s2_x * s1_y + s1_x * s2_y);
-        const t = (s2_x * (lineA.y1 - lineB.y1) - s2_y * (lineA.x1 - lineB.x1)) / (-s2_x * s1_y + s1_x * s2_y);
+            const s = (-s1_y * (lineA.x1 - lineB.x1) + s1_x * (lineA.y1 - lineB.y1)) / (-s2_x * s1_y + s1_x * s2_y);
+            const t = (s2_x * (lineA.y1 - lineB.y1) - s2_y * (lineA.x1 - lineB.x1)) / (-s2_x * s1_y + s1_x * s2_y);
 
-        return s >= 0 && s <= 1 && t >= 0 && t <= 1;
+            return s >= 0 && s <= 1 && t >= 0 && t <= 1;
+        }
+
+        return checkIntersection(line1, line2) || checkIntersection(line2, line1);
     }
 
-    return checkIntersection(line1, line2) || checkIntersection(line2, line1);
-}
 
-
-// Enhanced function to move line forward
-function moveLineForward() {
-    if (selectedLineIndex >= 0 && selectedLineIndex < lines.length - 1) {
-        for (let i = selectedLineIndex + 1; i < lines.length; i++) {
-            if (linesAreInContact(lines[selectedLineIndex], lines[i])) {
-                // Swap with the first line found in contact
-                [lines[selectedLineIndex], lines[i]] = [lines[i], lines[selectedLineIndex]];
-                selectedLineIndex = i;
-                redrawCanvas();
-                break;
+    // Enhanced function to move line forward
+    function moveLineForward() {
+        if (selectedLineIndex >= 0 && selectedLineIndex < lines.length - 1) {
+            for (let i = selectedLineIndex + 1; i < lines.length; i++) {
+                if (linesAreInContact(lines[selectedLineIndex], lines[i])) {
+                    // Swap with the first line found in contact
+                    [lines[selectedLineIndex], lines[i]] = [lines[i], lines[selectedLineIndex]];
+                    selectedLineIndex = i;
+                    redrawCanvas();
+                    break;
+                }
             }
         }
     }
-}
 
-// Enhanced function to move line backward
-function moveLineBackward() {
-    if (selectedLineIndex > 0) {
-        for (let i = selectedLineIndex - 1; i >= 0; i--) {
-            if (linesAreInContact(lines[selectedLineIndex], lines[i])) {
-                // Swap with the first line found in contact
-                [lines[selectedLineIndex], lines[i]] = [lines[i], lines[selectedLineIndex]];
-                selectedLineIndex = i;
-                redrawCanvas();
-                break;
+    // Enhanced function to move line backward
+    function moveLineBackward() {
+        if (selectedLineIndex > 0) {
+            for (let i = selectedLineIndex - 1; i >= 0; i--) {
+                if (linesAreInContact(lines[selectedLineIndex], lines[i])) {
+                    // Swap with the first line found in contact
+                    [lines[selectedLineIndex], lines[i]] = [lines[i], lines[selectedLineIndex]];
+                    selectedLineIndex = i;
+                    redrawCanvas();
+                    break;
+                }
             }
         }
     }
-}
 
-// Add these to your event listeners for the respective buttons/controls
-document.getElementById('moveLineForward').addEventListener('click', moveLineForward);
-document.getElementById('moveLineBackward').addEventListener('click', moveLineBackward);
+    // Add these to your event listeners for the respective buttons/controls
+    document.getElementById('moveLineForward').addEventListener('click', moveLineForward);
+    document.getElementById('moveLineBackward').addEventListener('click', moveLineBackward);
 
+    document.getElementById('enableSnapping').addEventListener('change', function () {
+        isSnappingEnabled = this.checked;
+        redrawCanvas(); // Redraw the canvas if needed
+    });
+
+    document.getElementById('gridSizeInput').addEventListener('input', function () {
+        gridSize = parseInt(this.value, 10);
+        redrawCanvas(); // Redraw the canvas to update the grid
+    });
+
+    document.getElementById('snapDistanceInput').addEventListener('input', function () {
+        snapDistance = parseInt(this.value, 10);
+    });
 
     // Event listener for line width adjustment
-    document.getElementById('lineWidth').addEventListener('change', function(e) {
+    document.getElementById('lineWidth').addEventListener('change', function (e) {
         lineWidth = parseInt(e.target.value, 10);
     });
 
-    document.getElementById('lineColor').addEventListener('change', function(e) {
+    document.getElementById('lineColor').addEventListener('change', function (e) {
         lineColor = e.target.value;
     });
 
     // Event listener for line style change
-    document.getElementById('lineStyle').addEventListener('change', function(e) {
+    document.getElementById('lineStyle').addEventListener('change', function (e) {
         lineStyle = e.target.value;
     });
 
     // Event listener for line opacity change
-    document.getElementById('lineOpacity').addEventListener('change', function(e) {
+    document.getElementById('lineOpacity').addEventListener('change', function (e) {
         lineOpacity = parseFloat(e.target.value);
     });
 
-    document.getElementById('lockButton').addEventListener('click', function() {
+    document.getElementById('lockButton').addEventListener('click', function () {
         if (selectedLineIndex !== -1) {
             toggleLockLine(selectedLineIndex);
         }
     });
-    document.getElementById('annotateButton').addEventListener('click', function() {
-        const text = document.getElementById('annotationText').value;
+    document.getElementById('annotateButton').addEventListener('click', function () {
+        const text = document.getEfdrawLilementById('annotationText').value;
         if (selectedLineIndex !== -1 && text) {
             annotateLine(selectedLineIndex, text);
             document.getElementById('annotationText').value = ''; // Clear the input field
         }
     });
-     
+
+    document.getElementById('strokeWeightSlider').addEventListener('input', function () {
+        strokeWeight = parseInt(this.value, 10);
+        // Optionally, update the current drawing tool or refresh the canvas
+    });
+    document.getElementById('strokeWeightSlider').addEventListener('input', function () {
+        strokeWeight = parseInt(this.value, 10);
+        redrawCanvas(); // Redraw the canvas with the new stroke weight
+    });
+
+
+
+
+    function drawGrid() {
+        ctx.strokeStyle = '#e0e0e0'; // Light gray color for the grid
+        ctx.lineWidth = 1;
+
+        for (let x = 0; x < canvas.width; x += gridSize) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, canvas.height);
+            ctx.stroke();
+        }
+
+        for (let y = 0; y < canvas.height; y += gridSize) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(canvas.width, y);
+            ctx.stroke();
+        }
+    }
+
+    function applySnapping(x, y) {
+        if (!isSnappingEnabled) return [x, y];
+
+        // Snap to grid logic
+        const nearestGridX = Math.round(x / gridSize) * gridSize;
+        const nearestGridY = Math.round(y / gridSize) * gridSize;
+
+        if (Math.abs(x - nearestGridX) < snapDistance) x = nearestGridX;
+        if (Math.abs(y - nearestGridY) < snapDistance) y = nearestGridY;
+
+        // Add logic to snap to other objects if needed
+        // ...
+
+        return [x, y];
+    }
+
 
     function drawEconomicGraph() {
         // Set up styles for the graph
@@ -141,18 +205,18 @@ document.getElementById('moveLineBackward').addEventListener('click', moveLineBa
         ctx.strokeStyle = 'green'; // Color for curve
         ctx.lineWidth = 2;
         drawCurve(/* ... */);
-    
+
         // Draw dashed lines
         ctx.strokeStyle = 'black'; // Color for dashed line
         ctx.lineWidth = 1;
         ctx.setLineDash([5, 5]); // Set dashed line style
         drawDashedLine(/* ... */);
-    
+
         // Draw points and labels
         ctx.fillStyle = 'red'; // Color for points and labels
         drawPoint(/* ... */);
         drawLabel(/* ... */);
-    
+
         // Reset line dash style for other drawings
         ctx.setLineDash([]);
     }
@@ -161,8 +225,9 @@ document.getElementById('moveLineBackward').addEventListener('click', moveLineBa
         ctx.beginPath();
         ctx.moveTo(startX, startY);
         ctx.lineTo(endX, endY);
+        ctx.lineWidth = strokeWeight; // Set the line width to strokeWeight
         ctx.stroke();
-    
+
         // If a label is provided, draw it at the end of the line
         if (label) {
             ctx.fillStyle = 'black'; // Set the text color
@@ -172,15 +237,15 @@ document.getElementById('moveLineBackward').addEventListener('click', moveLineBa
             ctx.fillText(label, endX, startY - 5); // Position the label slightly above the line end
         }
     }
-    
-    
+
+
     function drawCurve(startX, startY, cp1x, cp1y, cp2x, cp2y, endX, endY) {
         ctx.beginPath();
         ctx.moveTo(startX, startY);
         ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endX, endY);
         ctx.stroke();
     }
-    
+
     function drawDashedLine(startX, startY, endX, endY, dashArray = [5, 5]) {
         ctx.beginPath();
         ctx.setLineDash(dashArray);
@@ -189,35 +254,40 @@ document.getElementById('moveLineBackward').addEventListener('click', moveLineBa
         ctx.stroke();
         ctx.setLineDash([]); // Reset to solid line
     }
-    
+
     function drawPoint(x, y, radius = 3) {
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, 2 * Math.PI);
         ctx.fill();
     }
-    
+
     function drawLabel(x, y, text) {
         ctx.fillText(text, x, y);
     }
-    
-    function annotateLine(lineIndex, text) {
-    if (lineIndex >= 0 && lineIndex < lines.length && !lines[lineIndex].locked) {
-        lines[lineIndex].annotation = text;
-        redrawCanvas();
-    }
-}
 
-    
+    function annotateLine(lineIndex, text) {
+        if (lineIndex >= 0 && lineIndex < lines.length && !lines[lineIndex].locked) {
+            lines[lineIndex].annotation = text;
+            redrawCanvas();
+        }
+    }
+
+
     function startDrawing(e) {
         if (mode !== 'draw' || moving || duplicating) return;
         const { offsetX: x, offsetY: y } = e;
         drawing = true;
-        currentLine = { 
-            x1: x, y1: y, x2: x, y2: y, 
-            width: lineWidth, color: lineColor, 
-            style: lineStyle, opacity: lineOpacity,
+        currentLine = {
+            x1: x, y1: y, x2: x, y2: y,
+            width: lineWidth, // Actual line width
+            color: lineColor,
+            style: lineStyle, 
+            opacity: lineOpacity,
+            strokeColor: '#000000', // Color for the stroke (outer line)
+            lineColor: '#FF0000', // Color for the actual line (middle line)
             locked: false, // existing property
-            annotation: ""  // new property for annotation
+            annotation: "",  // new property for annotation
+            width: strokeWeight // Use the current stroke weight
         };
         lines.push(currentLine);
     }
@@ -255,11 +325,16 @@ document.getElementById('moveLineBackward').addEventListener('click', moveLineBa
 
     function draw(e) {
         if (!drawing) return;
-        const { offsetX: x, offsetY: y } = e;
+        let { offsetX: x, offsetY: y } = e;
+
+        // Apply snapping
+        [x, y] = applySnapping(x, y);
+
         currentLine.x2 = x;
         currentLine.y2 = y;
         redrawCanvas();
     }
+
 
     function stopDrawing() {
         drawing = false;
@@ -285,7 +360,7 @@ document.getElementById('moveLineBackward').addEventListener('click', moveLineBa
             redrawCanvas(); // Update the canvas to reflect the change
         }
     }
-    
+
 
     function determineMovingEnd(line, x, y) {
         const distToStart = Math.sqrt((line.x1 - x) ** 2 + (line.y1 - y) ** 2);
@@ -329,31 +404,60 @@ document.getElementById('moveLineBackward').addEventListener('click', moveLineBa
         return Math.sqrt(distanceSquared(P, { x: A.x + t * (B.x - A.x), y: A.y + t * (B.y - A.y) }));
     }
 
-    function distanceSquared(v, w) { 
+    function distanceSquared(v, w) {
         return (v.x - w.x) ** 2 + (v.y - w.y) ** 2;
     }
 
     function drawArrowhead(ctx, x, y, radians) {
         const arrowLength = 15; // Length of the arrowhead
         const arrowWidth = 5; // Width of the arrowhead
-    
+
         ctx.save();
         ctx.beginPath();
         ctx.translate(x, y);
         ctx.rotate(radians);
-    
+
         // Draw an arrowhead
         ctx.moveTo(0, 0); // Start at the line end
         ctx.lineTo(-arrowWidth, -arrowLength);
         ctx.lineTo(arrowWidth, -arrowLength);
         ctx.lineTo(0, 0);
-    
+
         ctx.fillStyle = ctx.strokeStyle; // Set the fill color to the same as the line
         ctx.fill();
-    
+
         ctx.restore();
     }
-    
+
+
+    function drawLineWithStroke(startX, startY, endX, endY, lineWidth, strokeColor, lineColor) {
+        const angle = Math.atan2(endY - startY, endX - startX);
+        const offset = lineWidth / 2;
+
+        // Calculate offset points
+        const offsetX = offset * Math.sin(angle);
+        const offsetY = offset * Math.cos(angle);
+
+        // Draw stroke lines (outer lines)
+        ctx.beginPath();
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = 1; // Thin line for the stroke
+        ctx.moveTo(startX - offsetX, startY + offsetY);
+        ctx.lineTo(endX - offsetX, endY + offsetY);
+        ctx.moveTo(startX + offsetX, startY - offsetY);
+        ctx.lineTo(endX + offsetX, endY - offsetY);
+        ctx.stroke();
+
+        // Draw actual line (middle line)
+        ctx.beginPath();
+        ctx.strokeStyle = lineColor;
+        ctx.lineWidth = lineWidth;
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+        ctx.stroke();
+    }
+
+
     function applyLineStyle(ctx, line) {
         switch (line.style) {
             case 'dashed':
@@ -372,25 +476,29 @@ document.getElementById('moveLineBackward').addEventListener('click', moveLineBa
                 ctx.setLineDash([]);
         }
     }
-    
-    
+
+
     function redrawCanvas() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
         drawEconomicGraph(); // If you have a static background graph
-    
+        if (isSnappingEnabled) {
+            drawGrid(); // Function to draw the grid based on gridSize
+        }
+        
+
         lines.forEach((line, index) => {
             ctx.beginPath();
             ctx.globalAlpha = line.opacity;
             applyLineStyle(ctx, line);
-    
+
             if (index === selectedLineIndex) {
                 if (line.locked) {
                     // Style for a selected and locked line
                     ctx.strokeStyle = 'grey'; // Different color for locked line
                     ctx.lineWidth = line.width + 4; // Thicker line for visibility
                     ctx.setLineDash([5, 5]); // Dashed style for locked line
-    
+
                     // Draw endpoint markers for locked line
                     drawEndpointMarker(line.x1, line.y1, 'red');
                     drawEndpointMarker(line.x2, line.y2, 'red');
@@ -398,7 +506,7 @@ document.getElementById('moveLineBackward').addEventListener('click', moveLineBa
                     // Style for a selected but not locked line
                     ctx.strokeStyle = 'blue'; // Highlight color for selected line
                     ctx.lineWidth = line.width + 2;
-    
+
                     // Draw endpoint markers for selected line
                     drawEndpointMarker(line.x1, line.y1, 'blue');
                     drawEndpointMarker(line.x2, line.y2, 'blue');
@@ -415,16 +523,16 @@ document.getElementById('moveLineBackward').addEventListener('click', moveLineBa
                 const midY = (line.y1 + line.y2) / 2;
                 drawAnnotation(midX, midY, line.annotation);
             }
-    
+
             ctx.moveTo(line.x1, line.y1);
             ctx.lineTo(line.x2, line.y2);
             ctx.stroke();
         });
-    
+
         // Display mode and selected line index
         displayModeAndSelection();
     }
-    
+
     //Draw
     redrawCanvas();
 
@@ -442,39 +550,39 @@ document.getElementById('moveLineBackward').addEventListener('click', moveLineBa
         ctx.fillStyle = color;
         ctx.fill();
     }
-    
+
 
     function displayModeAndSelection() {
         // Reset shadow for text
         ctx.shadowBlur = 0;
-    
+
         ctx.globalAlpha = 1;
         ctx.fillStyle = 'black';
         ctx.font = '16px Arial';
-        const modeTextX =canvas.width - 100; // Horizontal position from the left
+        const modeTextX = canvas.width - 100; // Horizontal position from the left
         const modeTextY = 30; // Vertical position from the top
 
         ctx.fillText(`Mode: ${mode}`, modeTextX, modeTextY);
 
         if (selectedLineIndex !== -1) {
-            ctx.fillText(`Selected Line: ${selectedLineIndex}`, modeTextX, modeTextY+20);
+            ctx.fillText(`Selected Line: ${selectedLineIndex}`, modeTextX, modeTextY + 20);
         }
-    
+
         ctx.globalAlpha = 1;
     }
-    
-    
-    canvas.addEventListener('mousemove', function(e) {
+
+
+    canvas.addEventListener('mousemove', function (e) {
         const { offsetX: x, offsetY: y } = e;
         let onLine = lines.some(line => isLineClicked(line, x, y));
-    
+
         // Change the cursor to a pointer if it's over a line
         if (onLine) {
             canvas.style.cursor = 'pointer';
         } else {
             canvas.style.cursor = 'default';
         }
-    
+
         // Existing logic for drawing, moving, or duplicating lines
         if (mode === 'draw') {
             draw(e);
@@ -484,14 +592,14 @@ document.getElementById('moveLineBackward').addEventListener('click', moveLineBa
             duplicateLine(e);
         }
     });
-    
-    canvas.addEventListener('mousedown', function(e) {
+
+    canvas.addEventListener('mousedown', function (e) {
         if (mode === 'draw') {
             startDrawing(e);
         } else if (mode === 'move') {
             const { offsetX: x, offsetY: y } = e;
             let lineFound = false;
-    
+
             lines.forEach((line, index) => {
                 if (isLineClicked(line, x, y) && !lineFound) {
                     selectedLineIndex = index; // Set the selected line index
@@ -502,7 +610,7 @@ document.getElementById('moveLineBackward').addEventListener('click', moveLineBa
                     }
                 }
             });
-    
+
             if (!lineFound) {
                 selectedLineIndex = -1; // Deselect line if none is clicked
                 currentLine = null; // Ensure currentLine is null if no line is found
@@ -512,15 +620,47 @@ document.getElementById('moveLineBackward').addEventListener('click', moveLineBa
             startDuplicating(e);
         }
     });
-    
-    
-    canvas.addEventListener('mouseup', function() {
+
+    canvas.addEventListener('mouseup', function () {
         if (mode === 'draw') {
             stopDrawing();
         } else if (mode === 'move') {
             stopMoving();
-        }else if (mode === 'duplicate') {
+        } else if (mode === 'duplicate') {
             stopDuplicating();
         }
     });
+
+    // adding touch support
+    function handleTouchStart(e) {
+        e.preventDefault(); // Prevents default touch behaviors like scrolling
+        const touch = e.touches[0];
+        const mouseEvent = new MouseEvent("mousedown", {
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        });
+        canvas.dispatchEvent(mouseEvent);
+    }
+
+    function handleTouchMove(e) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const mouseEvent = new MouseEvent("mousemove", {
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        });
+        canvas.dispatchEvent(mouseEvent);
+    }
+
+    function handleTouchEnd(e) {
+        e.preventDefault();
+        const mouseEvent = new MouseEvent("mouseup", {});
+        canvas.dispatchEvent(mouseEvent);
+    }
+
+    // callback
+    canvas.addEventListener("touchstart", handleTouchStart, false);
+    canvas.addEventListener("touchmove", handleTouchMove, false);
+    canvas.addEventListener("touchend", handleTouchEnd, false);
+
 });

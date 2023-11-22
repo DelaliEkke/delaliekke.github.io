@@ -1,3 +1,8 @@
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 body {
     font-family: Arial, sans-serif;
     margin: 0;
@@ -6,6 +11,7 @@ body {
     flex-direction: column;
     align-items: center;
     background-color: #f4f4f4;
+    overflow-x: hidden;
 }
 
 .toolbar {
@@ -23,19 +29,23 @@ body {
 .toolbar select,
 .toolbar input,
 .toolbar button {
-    margin: 5px 10px;
+    margin: 1px 10px;
     padding: 8px;
     font-size: 14px;
-    border-radius: 12px;
+    border-radius: 6px;
     border: 1px solid #ddd;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
-#lineColor{
+#lineColor, #strokeColor{
     width: 70px;
     height: 40px;
+}
+
+#snappingControls{
+    display: flex;
 }
 
 .toolbar button {
@@ -57,11 +67,13 @@ body {
 canvas {
     border: 1px solid #ccc;
     margin-top: 30px; /* Increased margin-top */
+    background-color: white;
 }
 
 
 /* Responsive adjustments */
 @media (max-width: 600px) {
+
     .toolbar {
         flex-direction: column;
     }
@@ -72,4 +84,5 @@ canvas {
     .toolbar button {
         margin: 5px;
     }
+
 }
