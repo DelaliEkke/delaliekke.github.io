@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<canvas id="myCanvas" width="600" height="400" style="border:1px solid #000000;">
+Your browser does not support the Canvas element.
+</canvas>
+<button id="newCurveButton">Start New Curve</button>
+<button id="convertToLineButton">Convert Curve to Line</button>
+<input id="scaleFactor" type="number" step="0.1" placeholder="Scale factor (e.g., 1.5)" />
+<button id="scaleCurveButton">Scale Curve</button>
+
+<script>
+var canvas = document.getElementById('myCanvas');
+var ctx = canvas.getContext('2d');
+var curves = [];
+var currentCurve = {};
+var isDrawingLine = false;
+var isDraggingCurve = false;
+var selectedCurveId = null;
+canvas.addEventListener('mousedown', function(e) {
+    if (e.shiftKey) {
+        let curveFound = false;
+        curves.forEach(function(curve, index) {
+            if (isCurveClicked(curve, e.offsetX, e.offsetY)) {
+                console.log("Trying to select curve with ID:", curve.id);
+                selectedCurveId = curve.id;
+                curveFound = true;
+            }
+        });
+
+        if (!curveFound) {
+            selectedCurveId = null;
+        }
+
+        redrawCurves();
+    }  else if (!isDraggingCurve) {
+        // Start drawing a new curve
+        currentCurve.startPoint = { x: e.offsetX, y: e.offsetY };
+        currentCurve.controlPoint = currentCurve.startPoint; // Initialize control point
+        currentCurve.endPoint = currentCurve.startPoint; // Initialize end point
+        isDrawingLine = true;
+    }
+});
+
+
+
+canvas.addEventListener('mousemove', function(e) {
+    if (isDrawingLine) {
+        currentCurve.endPoint = { x: e.offsetX, y: e.offsetY };
+        redrawCurves();
+    } else if (isDraggingCurve) {
+        currentCurve.controlPoint = { x: e.offsetX, y: e.offsetY };
+        redrawCurves();
+    }
+});
+
+canvas.addEventListener('mouseup', function(e) {
+    if (isDrawingLine) {
+        isDrawingLine = false;
+        isDraggingCurve = true; // Switch to curve dragging mode
+    } else if (isDraggingCurve) {
+        isDraggingCurve = false;
+        currentCurve.id = curves.length; // Assign an ID to the curve
+        curves.push(currentCurve); // Save the current curve
+        currentCurve = {}; // Reset current curve
+    }
+});
+canvas.addEventListener('dblclick', function(e) {
+    curves.forEach(function(curve) {
+        if (isCurveClicked(curve, e.offsetX, e.offsetY)) {
+            // Logic to highlight or indicate selection
+            console.log("Selected curve ID:", curve.id);
+            curve.color = 'red'; // Example: Change color to red
+            redrawCurves();
+        }
+    });
+});
+
+document.getElementById('scaleCurveButton').addEventListener('click', function() {
+    const scaleFactor = parseFloat(document.getElementById('scaleFactor').value);
+    if (selectedCurveId !== null && !isNaN(scaleFactor)) {
+        let curve = curves.find(curve => curve.id === selectedCurveId);
+        if (curve) {
+            scaleCurve(curve, scaleFactor);
+            redrawCurves();
+        }
+    }
+});
+
+
+document.getElementById('newCurveButton').addEventListener('click', function() {
+    isDraggingCurve = false; // Exit curve dragging mode
+});
+
+function redrawCurves() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+
+    curves.forEach(function(curve) {
+        drawCurve(curve); // Redraw each stored curve
+    });
+
+    if (isDrawingLine || isDraggingCurve) {
+        drawCurve(currentCurve); // Draw the current curve
+    }
+}
+
+function scaleCurve(curve, scaleFactor) {
+    // Calculate the center point of the curve
+    let centerX = (curve.startPoint.x + curve.endPoint.x) / 2;
+    let centerY = (curve.startPoint.y + curve.endPoint.y) / 2;
+
+    // Scale the start point, control point, and end point
+    curve.startPoint.x = scalePoint(curve.startPoint.x, centerX, scaleFactor);
+    curve.startPoint.y = scalePoint(curve.startPoint.y, centerY, scaleFactor);
+    curve.controlPoint.x = scalePoint(curve.controlPoint.x, centerX, scaleFactor);
+    curve.controlPoint.y = scalePoint(curve.controlPoint.y, centerY, scaleFactor);
+    curve.endPoint.x = scalePoint(curve.endPoint.x, centerX, scaleFactor);
+    curve.endPoint.y = scalePoint(curve.endPoint.y, centerY, scaleFactor);
+}
+
+function scalePoint(pointCoord, centerCoord, scaleFactor) {
+    return centerCoord + (pointCoord - centerCoord) * scaleFactor;
+}
+
+
+function isCurveClicked(curve, clickX, clickY) {
+    const segmentCount = 50; // Number of segments to divide the curve
+    let t, x, y, dx, dy, distance;
+
+    for (let i = 0; i <= segmentCount; i++) {
+        t = i / segmentCount;
+        x = quadraticBezier(t, curve.startPoint.x, curve.controlPoint.x, curve.endPoint.x);
+        y = quadraticBezier(t, curve.startPoint.y, curve.controlPoint.y, curve.endPoint.y);
+        
+        dx = x - clickX;
+        dy = y - clickY;
+        distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < 10) { // Threshold for considering a click 'near' the curve
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function quadraticBezier(t, p0, p1, p2) {
+    return (1 - t) * (1 - t) * p0 + 2 * (1 - t) * t * p1 + t * t * p2;
+}
+
+document.getElementById('convertToLineButton').addEventListener('click', function() {
+    if (selectedCurveId !== null) {
+        let curve = curves.find(curve => curve.id === selectedCurveId);
+        if (curve) {
+            curve.controlPoint = calculateMidPoint(curve.startPoint, curve.endPoint);
+            redrawCurves();
+        }
+    }
+});
+function calculateMidPoint(point1, point2) {
+    return {
+        x: (point1.x + point2.x) / 2,
+        y: (point1.y + point2.y) / 2
+    };
+}
+
+function drawCurve(curve) {
+    if (!curve.startPoint) return; // Skip if the curve has no start point
+
+    ctx.beginPath();
+    if (curve.id === selectedCurveId) {
+        ctx.strokeStyle = 'red'; // Highlight color for selected curve
+        ctx.lineWidth = 3; // Make selected curve thicker
+    } else {
+        ctx.strokeStyle = 'black'; // Default color
+        ctx.lineWidth = 1; // Default thickness
+    }
+    ctx.moveTo(curve.startPoint.x, curve.startPoint.y);
+    ctx.quadraticCurveTo(curve.controlPoint.x, curve.controlPoint.y, curve.endPoint.x, curve.endPoint.y);
+    ctx.stroke();
+}
+
+
+
+</script>
+
+</body>
+</html>

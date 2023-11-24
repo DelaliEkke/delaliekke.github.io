@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How To Use Interactive Drawing Canvas</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header,
+        footer {
+            background-color: #2c3e50;
+            color: white;
+            text-align: center;
+            padding: 10px 0;
+        }
+
+        header h1,
+        footer p {
+            margin: 0;
+        }
+
+        section {
+            background-color: white;
+            margin: 10px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        section h2 {
+            color: #2c3e50;
+        }
+
+        /* Additional styling can be added as needed */
+        #myBtn {
+            display: none;
+            /* Hidden by default */
+            position: fixed;
+            /* Fixed/sticky position */
+            bottom: 20px;
+            /* Place the button at the bottom of the page */
+            right: 30px;
+            /* Place the button 30px from the right */
+            z-index: 99;
+            /* Make sure it does not overlap */
+            border: none;
+            /* Remove borders */
+            outline: none;
+            /* Remove outline */
+            background-color: #2c3e50;
+            /* Set a background color */
+            color: white;
+            /* Text color */
+            cursor: pointer;
+            /* Add a mouse pointer on hover */
+            padding: 15px;
+            /* Some padding */
+            border-radius: 10px;
+            /* Rounded corners */
+        }
+
+        #myBtn:hover {
+            background-color: #555;
+            /* Add a dark-grey background on hover */
+        }
+
+        /* General Navigation Bar Styles */
+nav {
+    background-color: #2c3e50; /* Dark background for the nav bar */
+    color: white;
+    text-align: center; /* Center the nav items */
+    padding: 10px 0; /* Some padding around the nav items */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); /* Shadow for a subtle 3D effect */
+}
+
+nav ul {
+    list-style-type: none; /* Removes default list styling */
+    margin: 0;
+    padding: 0;
+}
+
+nav ul li {
+    display: inline; /* Display list items in a line */
+    margin-right: 20px; /* Space between menu items */
+}
+
+nav ul li:last-child {
+    margin-right: 0; /* Removes margin from the last item */
+}
+
+nav a {
+    text-decoration: none; /* Removes underline from links */
+    color: white; /* White text color */
+    font-weight: bold; /* Make the text bold */
+    transition: color 0.3s; /* Smooth transition for hover effect */
+}
+
+nav a:hover {
+    color: #1abc9c; /* Change color on hover */
+}
+
+/* Responsive Design for smaller screens */
+@media (max-width: 600px) {
+    nav ul li {
+        display: block; /* Stack the links under each other */
+        text-align: left; /* Align to the left */
+        margin-bottom: 10px; /* Space between stacked items */
+    }
+}
+
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>How To Use the Interactive Drawing Canvas</h1>
+        </header>
+
+        <nav>
+            <ul>
+                <li><a href="#getting-started">Getting Started</a></li>
+                <li><a href="#advanced-features">Advanced Features</a></li>
+                <li><a href="#tips-and-tricks">Tips and Tricks</a></li>
+                <li><a href="#troubleshooting">Troubleshooting</a></li>
+            </ul>
+        </nav>
+
+        <section id="getting-started">
+            <h2>Getting Started</h2>
+            <p>Discover the basic layout and functionalities of the Interactive Drawing Canvas:</p>
+            <ul>
+                <li><strong>Canvas Area:</strong> The main area where you can draw and create your artwork.</li>
+                <li><strong>Toolbar:</strong> Located at the top, it contains tools for drawing lines, selecting colors,
+                    and adjusting thickness.</li>
+                <li><strong>Color Selection:</strong> Choose different colors for your drawings from a color palette.
+                </li>
+                <li><strong>Line Thickness Slider:</strong> Adjust the thickness of the lines you draw.</li>
+            </ul>
+            <img src="images/getting-started.png" alt="Getting Started Image">
+        </section>
+
+        <section id="advanced-features">
+            <h2>Advanced Features</h2>
+            <p>Enhance your drawings with these advanced tools:</p>
+            <ul>
+                <li><strong>Curve Tool:</strong> Draw and edit curved lines and shapes.</li>
+                <li><strong>Layer Management:</strong> Organize your drawing by using multiple layers.</li>
+                <li><strong>Custom Shapes:</strong> Access a library of shapes and symbols for quick insertion.</li>
+                <li><strong>Export Options:</strong> Export your artwork in various formats, like PNG, JPEG, or SVG.
+                </li>
+            </ul>
+            <img src="images/advanced-features.png" alt="Advanced Features Image">
+        </section>
+
+        <section id="tips-and-tricks">
+            <h2>Tips and Tricks</h2>
+            <p>Maximize your efficiency and creativity with these tips:</p>
+            <ul>
+                <li><strong>Keyboard Shortcuts:</strong> Learn key combinations for quick access to tools.</li>
+                <li><strong>Custom Presets:</strong> Save your frequently used settings for easy access.</li>
+                <li><strong>Layer Locking:</strong> Lock layers to prevent accidental changes.</li>
+                <li><strong>Zoom and Pan:</strong> Use zoom and pan for detailed work and large canvases.</li>
+            </ul>
+            <img src="images/tips-and-tricks.png" alt="Tips and Tricks Image">
+        </section>
+
+        <section id="troubleshooting">
+            <h2>Troubleshooting</h2>
+            <p>Find solutions to common issues and problems:</p>
+            <ul>
+                <li><strong>Canvas Not Responding:</strong> Steps to take if the canvas freezes or does not respond.
+                </li>
+                <li><strong>Tool Malfunctions:</strong> What to do if a drawing tool isn't working as expected.</li>
+                <li><strong>Export Issues:</strong> Troubleshoot problems with exporting files.</li>
+                <li><strong>Performance Tips:</strong> Enhance the performance of the canvas on different devices.</li>
+            </ul>
+            <img src="images/troubleshooting.png" alt="Troubleshooting Image">
+        </section>
+
+        <footer>
+            <p>Contact us for support or to share your suggestions.</p>
+        </footer>
+    </div>
+
+    <button onclick="topFunction()" id="myBtn" title="Go to top">Top</button>
+
+    <script src="script.js"></script>
+    <script>
+        // When the user scrolls down 20px from the top of the document, show the button
+        window.onscroll = function () { scrollFunction() };
+
+        function scrollFunction() {
+            if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+                document.getElementById("myBtn").style.display = "block";
+            } else {
+                document.getElementById("myBtn").style.display = "none";
+            }
+        }
+
+        // When the user clicks on the button, scroll to the top of the document
+        function topFunction() {
+            document.body.scrollTop = 0; // For Safari
+            document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
+        }
+    </script>
+</body>
+
+</html>

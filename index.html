@@ -9,56 +9,146 @@
 </head>
 
 <body>
+    <div class="tab">
+        <button class="tablinks" onclick="openTab(event, 'CanvasControls')">Canvas Controls</button>
+        <button class="tablinks" onclick="openTab(event, 'DrawingControls')">Drawing Controls</button>
+        <button class="tablinks" onclick="openTab(event, 'ShapeControls')">Shape Controls</button>
+        <button class="tablinks" onclick="openTab(event, 'AnnotationControls')">Annotation Controls</button>
+        <button class="tablinks" onclick="openTab(event, 'LineManipulation')">Line Manipulation</button>
+        <button class="tablinks" onclick="openTab(event, 'CurveControls')">Curve Controls</button>
+        <button class="tablinks" onclick="openTab(event, 'SnappingControls')">Snapping Controls</button>
+        <button class="tablinks"><a href="./howto.html">How To's</a></button>
+    </div>
     <div class="toolbar">
-        <button id="clearCanvas">Clear Canvas</button>
-        <label for="lineColor">Line Color:</label>
-        <input type="color" id="lineColor" value="#FF0000">
-        <label for="strokeColor">Stroke Color:</label>
-        <input type="color" id="strokeColor" value="#000000">
-        <input type="text" id="annotationText" placeholder="Enter annotation">
-        <button id="annotateButton">Annotate Line</button>
-        <label for="lineWidth">Line Width:</label>
-        <input type="range" id="lineWidth" min="1" max="10" value="2">
-        <button id="moveLineForward">Move Line Forward</button>
-        <button id="lockButton">Lock/Unlock Line</button>
-        <button id="moveLineBackward">Move Line Backward</button>
-        <label for="lineOpacity">Line Opacity:</label>
-        <input type="range" id="lineOpacity" min="0" max="1" step="0.1" value="1">
-        <label for="lineStyle">Line Style:</label>
-        <select id="lineStyle">
-            <option value="solid">Solid</option>
-            <option value="dashed">Dashed</option>
-            <option value="dotted">Dotted</option>
-            <option value="arrow">Arrow</option>
-        </select>
-        <label for="shapeSelector">select Shape</label>
-        <select id="shapeSelector">
-            <option value="line">Line</option>
-            <option value="circle">Circle</option>
-            <option value="rectangle">Rectangle</option>
-        </select>
-        <div id="snappingControls">
+        <div class="tabcontent canvas-controls" id="CanvasControls">
+            <button id="clearCanvas">Clear Canvas</button>
+            <button id="exportPng">Export to PNG</button>
+            <button id="exportJpg">Export to JPG</button>
+            <button id="exportSvg">Export to SVG</button>
+        </div>
+
+        <div class="tabcontent drawing-controls" id="DrawingControls">
+            <div class="color-controls">
+                <label for="lineColor">Line Color:</label>
+                <input type="color" id="lineColor" value="#FF0000">
+                <label for="strokeColor">Stroke Color:</label>
+                <input type="color" id="strokeColor" value="#000000">
+            </div>
+
+            <div class="line-controls">
+                <label for="lineWidth">Line Width:</label>
+                <input type="range" id="lineWidth" min="1" max="10" value="2">
+                <label for="lineOpacity">Line Opacity:</label>
+                <input type="range" id="lineOpacity" min="0" max="1" step="0.1" value="1">
+                <label for="lineThicknessSlider">Line Thickness Slider:</label>
+                <input type="range" id="lineThicknessSlider" min="1" max="10" value="2">
+                <label for="lineStyle">Line Style:</label>
+                <select id="lineStyle">
+                    <option value="solid">Solid</option>
+                    <option value="dashed">Dashed</option>
+                    <option value="dotted">Dotted</option>
+                    <option value="arrow">Arrow</option>
+                </select>
+                <label for="lineEffect">Line Effect</label>
+                <select id="lineEffect">
+                    <option value="none">None</option>
+                    <option value="shadow">Shadow</option>
+                    <option value="glow">Glow</option>
+                    <option value="blur">Blur</option>
+                </select>
+            </div>
+            <label for="blendModeSelector"></label>
+            <select id="blendModeSelector">
+                <option value="source-over">Normal</option>
+                <option value="multiply">Multiply</option>
+                <option value="screen">Screen</option>
+                <option value="overlay">Overlay</option>
+                <option value="darken">Darken</option>
+                <option value="lighten">Lighten</option>
+                <option value="color-dodge">Color Dodge</option>
+                <option value="color-burn">Color Burn</option>
+                <option value="hard-light">Hard Light</option>
+                <option value="soft-light">Soft Light</option>
+                <option value="difference">Difference</option>
+                <option value="exclusion">Exclusion</option>
+                <option value="hue">Hue</option>
+                <option value="saturation">Saturation</option>
+                <option value="color">Color</option>
+                <option value="luminosity">Luminosity</option>
+            </select>
+
+        </div>
+
+        <div class="tabcontent shape-controls" id="ShapeControls">
+            <label for="shapeSelector">Select Shape:</label>
+            <select id="shapeSelector">
+                <option value="line">Line</option>
+                <option value="circle">Circle</option>
+                <option value="rectangle">Rectangle</option>
+            </select>
+        </div>
+
+        <div class="tabcontent annotation-controls" id="AnnotationControls">
+            <input type="text" id="annotationText" placeholder="Enter annotation">
+            <button id="annotateButton">Annotate Line</button>
+        </div>
+
+        <div class="tabcontent line-manipulation" id="LineManipulation">
+            <button id="moveLineForward">Move Line Forward</button>
+            <button id="lockButton">Lock/Unlock Line</button>
+            <button id="moveLineBackward">Move Line Backward</button>
+            <button id="extendLine">Extend Line</button>
+            <button id="shortenLine">Shorten Line</button>
+            <button id="convertToLineButton"></button>
+            <button id="convertToCurveButton"></button>
+        </div>
+
+        <div class="tabcontent curve-controls" id="CurveControls">
+            <button id="newCurveButton">Start New Curve</button>
+            <input id="scaleFactor" type="number" step="0.1" placeholder="Scale factor (e.g., 1.5)" />
+            <button id="scaleCurveButton">Scale Curve</button>
+        </div>
+
+        <div class="tabcontent" id="SnappingControls">
             <label>
-                <input type="checkbox" id="enableSnapping">
-                Enable Snapping
+                <input type="checkbox" id="enableSnapping"> Enable Snapping
             </label>
-            <label>
-                Grid Size:
+            <label>Grid Size:
                 <input type="number" id="gridSizeInput" value="20" min="5" max="100">
             </label>
-            <label>
-                Snap Distance:
+            <label>Snap Distance:
                 <input type="number" id="snapDistanceInput" value="10" min="1" max="50">
             </label>
             <div id="strokeWeightControl">
-                <label for="strokeWeightSlider">Stroke Weight:</label>
-                <input type="range" id="strokeWeightSlider" min="1" max="10" value="1">
+                <label for="strokeWeightSlider"></label>
+                <input type="range" id="strokeWeightSlider" min="0" max="0" value="0">
             </div>
         </div>
-
+    </div>
+    <div id="CanvasControls" class="tabcontent">
+        <!-- Canvas Controls content here -->
     </div>
     <canvas id="drawingCanvas" width="800" height="600"></canvas>
 
+    <script>
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tablinks");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
+
+        // Get the element with id="defaultOpen" and click on it
+        document.getElementsByClassName("tablinks")[0].click();
+
+    </script>
     <script src="script.js"></script>
 </body>
 

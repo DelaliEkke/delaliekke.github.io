@@ -5,8 +5,6 @@ document.addEventListener('DOMContentLoaded', function () {
     let currentLine = null, selectedLine = null;
     let lines = [];
     let mode = 'draw'; // Possible values: 'draw', 'move'
-    let curves = [];
-    let currentCurve = null;
     let movingEnd = 'none'; // Possible values: 'start', 'end', 'none'
     let lineWidth = parseInt(document.getElementById('lineWidth').value, 10); // Get initial line width
     let selectedLineIndex = -1; // Index of the selected line for deletion
@@ -19,11 +17,23 @@ document.addEventListener('DOMContentLoaded', function () {
     let freehandDrawing = false;
     let freehandPaths = [];
     let freehandPath = { points: [], color: lineColor, width: lineWidth };
-    
+    // curves
+    var curves = [];
+    var currentCurve = {};
+    var isDrawingLine = false;
+    var isDraggingCurve = false;
+    var selectedCurveId = null;
+    let hoveredCurveId = null;
+    let selectedLineEffect = null;
+    let isDraggingControlPoint = true;
     // Toggle between draw and move mode with 'm' key
     document.addEventListener('keydown', function (e) {
         if (e.key === 'm') {
-            mode = mode === 'draw' ? 'move' : (mode === 'move' ? 'duplicate' : (mode === 'duplicate' ? 'freehand' : 'draw'));
+            mode = mode === 'draw' ? 'curve'
+                : (mode === 'curve' ? 'freehand'
+                    : (mode === 'freehand' ? 'duplicate'
+                        : (mode === 'duplicate' ? 'move'
+                            : 'draw'))); // Added 'curve' mode here
             console.log(`Mode switched to: ${mode}`);
             redrawCanvas();
         } else if (e.key === 'd' && selectedLineIndex !== -1) {
@@ -31,6 +41,11 @@ document.addEventListener('DOMContentLoaded', function () {
             lines.splice(selectedLineIndex, 1);
             selectedLineIndex = -1; // Reset selected line index
             redrawCanvas(); // Redraw the canvas without the deleted lin
+        } else if (e.key === 'd' && selectedCurveId !== null) {
+            // Delete the selected curve when 'd' is pressed in move mode
+            curves = curves.filter(curve => curve.id !== selectedCurveId);
+            selectedCurveId = null; // Reset selected curve ID
+            redrawCanvas(); // Redraw the canvas without the deleted curve
         }
     });
 
@@ -82,57 +97,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Add these to your event listeners for the respective buttons/controls
-    document.getElementById('moveLineForward').addEventListener('click', moveLineForward);
-    document.getElementById('moveLineBackward').addEventListener('click', moveLineBackward);
-
-    document.getElementById('enableSnapping').addEventListener('change', function () {
-        isSnappingEnabled = this.checked;
-        redrawCanvas(); // Redraw the canvas if needed
-    });
-
-    document.getElementById('gridSizeInput').addEventListener('input', function () {
-        gridSize = parseInt(this.value, 10);
-        redrawCanvas(); // Redraw the canvas to update the grid
-    });
-
-    document.getElementById('snapDistanceInput').addEventListener('input', function () {
-        snapDistance = parseInt(this.value, 10);
-    });
-
-    // Event listener for line width adjustment
-    document.getElementById('lineWidth').addEventListener('change', function (e) {
-        lineWidth = parseInt(e.target.value, 10);
-    });
-
-    document.getElementById('lineColor').addEventListener('change', function (e) {
-        lineColor = e.target.value;
-    });
-
-    // Event listener for line style change
-    document.getElementById('lineStyle').addEventListener('change', function (e) {
-        lineStyle = e.target.value;
-    });
-
-    // Event listener for line opacity change
-    document.getElementById('lineOpacity').addEventListener('change', function (e) {
-        lineOpacity = parseFloat(e.target.value);
-    });
-
-    document.getElementById('lockButton').addEventListener('click', function () {
-        if (selectedLineIndex !== -1) {
-            toggleLockLine(selectedLineIndex);
-        }
-    });
-    document.getElementById('annotateButton').addEventListener('click', function () {
-        const text = document.getElementById('annotationText').value;
-        if (selectedLineIndex !== -1 && text) {
-            annotateLine(selectedLineIndex, text);
-            document.getElementById('annotationText').value = ''; // Clear the input field
-        }
-    });
-
-
     function drawGrid() {
         ctx.strokeStyle = '#e0e0e0'; // Light gray color for the grid
         ctx.lineWidth = 1;
@@ -181,23 +145,23 @@ document.addEventListener('DOMContentLoaded', function () {
         const tickSpacing = 40; // Space between each tick
 
         // Draw axes with a margin from the border
-        drawLine(margin, margin, margin, canvas.height - margin, "Qc"); // Y-axis
-        drawLine(margin, canvas.height - margin, canvas.width - margin, canvas.height - margin, "Qy"); // X-axis
+        drawBasicLine(margin, margin, margin, canvas.height - margin, "Qc"); // Y-axis
+        drawBasicLine(margin, canvas.height - margin, canvas.width - margin, canvas.height - margin, "Qy"); // X-axis
 
         // Draw ticks on Y-axis
         for (let y = margin; y < canvas.height - margin; y += tickSpacing) {
-            drawLine(margin - tickLength / 2, y, margin + tickLength / 2, y); // Ticks on Y-axis
+            drawBasicLine(margin - tickLength / 2, y, margin + tickLength / 2, y); // Ticks on Y-axis
         }
 
         // Draw ticks on X-axis
         for (let x = margin; x < canvas.width - margin; x += tickSpacing) {
-            drawLine(x, canvas.height - margin - tickLength / 2, x, canvas.height - margin + tickLength / 2); // Ticks on X-axis
+            drawBasicLine(x, canvas.height - margin - tickLength / 2, x, canvas.height - margin + tickLength / 2); // Ticks on X-axis
         }
 
-        // Draw curves
-        ctx.strokeStyle = 'green'; // Color for curve
-        ctx.lineWidth = 2;
-        drawCurve(/* ... */);
+        // // Draw curves
+        // ctx.strokeStyle = 'green'; // Color for curve
+        // ctx.lineWidth = 2;
+        // drawCurve(/* ... */);
 
         // Draw dashed lines
         ctx.strokeStyle = 'black'; // Color for dashed line
@@ -213,7 +177,9 @@ document.addEventListener('DOMContentLoaded', function () {
         // Reset line dash style for other drawings
         ctx.setLineDash([]);
     }
-    function drawLine(startX, startY, endX, endY, label) {
+
+
+    function drawBasicLine(startX, startY, endX, endY, label) {
         // Draw the line as before
         ctx.beginPath();
         ctx.moveTo(startX, startY);
@@ -230,13 +196,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-
-    function drawCurve(startX, startY, cp1x, cp1y, cp2x, cp2y, endX, endY) {
-        ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endX, endY);
-        ctx.stroke();
-    }
 
     function drawDashedLine(startX, startY, endX, endY, dashArray = [5, 5]) {
         ctx.beginPath();
@@ -273,12 +232,13 @@ document.addEventListener('DOMContentLoaded', function () {
             x1: x, y1: y, x2: x, y2: y,
             width: lineWidth, color: lineColor,
             style: lineStyle, opacity: lineOpacity,
+            effect: selectedLineEffect, // Assign the selected effect
             locked: false, // existing property
             annotation: ""  // new property for annotation
         };
+        currentLine.effect = selectedLineEffect; // Add the selected effect to the line
         lines.push(currentLine);
     }
-
     function startDuplicating(e) {
         if (mode !== 'duplicate' || drawing || moving) return;
         const { offsetX: x, offsetY: y } = e;
@@ -447,10 +407,47 @@ document.addEventListener('DOMContentLoaded', function () {
 
         //Draw all stored freehand paths
         freehandPaths.forEach(path => drawPath(path));
-        
+
         // Draw the current freehand path if it exists
         if (freehandDrawing && freehandPath.points.length > 0) {
             drawPath(freehandPath);
+        }
+
+        lines.forEach(line => {
+            drawLine(line);
+        });
+
+        // curves.forEach(curve => {
+        //     if (curve) {  // Add this check
+        //         drawCurve(curve);
+        //     }
+        // });
+
+        curves.forEach(curve => {
+            ctx.beginPath();
+
+            if (curve.id === hoveredCurveId) {
+                ctx.strokeStyle = 'blue'; // Distinct color when hovered
+                ctx.lineWidth = curve.width + 2; // Slightly thicker
+                ctx.setLineDash([10, 2]); // Dashed style
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'; // Optional: shadow for more emphasis
+                ctx.shadowBlur = 10;
+            } else {
+                ctx.strokeStyle = curve.color; // Default color
+                ctx.lineWidth = curve.width;
+                ctx.setLineDash([]); // Solid line for non-hovered curves
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+            }
+
+            drawCurve(curve); // Draw the curve
+            ctx.shadowColor = 'transparent'; // Reset shadow color after drawing
+            ctx.shadowBlur = 0; // Reset shadow blur after drawing
+        });
+
+
+        if (isDrawingLine || isDraggingCurve) {
+            drawCurve(currentCurve); // Draw the current curve
         }
 
         lines.forEach((line, index) => {
@@ -471,7 +468,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else {
                     // Style for a selected but not locked line
                     ctx.strokeStyle = 'blue'; // Highlight color for selected line
-                    ctx.lineWidth = line.width + 2;
+                    ctx.lineWidth = line.width * 1.1;
 
                     // Draw endpoint markers for selected line
                     drawEndpointMarker(line.x1, line.y1, 'blue');
@@ -513,7 +510,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         ctx.stroke();
     }
-    
+
 
     function drawAnnotation(x, y, text) {
         ctx.fillStyle = 'black'; // Annotation text color
@@ -533,21 +530,21 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!freehandDrawing) return;
         freehandPath.points.push([x, y]);
         redrawCanvas();
-    }   
-    
+    }
+
 
     function startFreehandDrawing(x, y) {
         freehandDrawing = true;
         freehandPath = { points: [[x, y]], color: lineColor, width: lineWidth };
     }
-    
+
     function addToFreehandPath(x, y) {
         if (freehandDrawing) {
             freehandPath.points.push([x, y]);
             redrawCanvas();
         }
     }
-    
+
     function stopFreehandDrawing() {
         if (freehandDrawing && freehandPath.points.length > 0) {
             freehandDrawing = false;
@@ -555,7 +552,7 @@ document.addEventListener('DOMContentLoaded', function () {
             redrawCanvas();
         }
     }
-    
+
 
 
     function displayModeAndSelection() {
@@ -577,6 +574,30 @@ document.addEventListener('DOMContentLoaded', function () {
         ctx.globalAlpha = 1;
     }
 
+    function isControlPointClicked(curve, x, y, tolerance = 5) {
+        const distanceToControlPoint = Math.sqrt(
+            (x - curve.controlPoint.x) ** 2 +
+            (y - curve.controlPoint.y) ** 2
+        );
+        return distanceToControlPoint < tolerance;
+    }
+
+
+    function moveControlPoint(e) {
+        if (!isDraggingControlPoint) return;
+        const { offsetX: x, offsetY: y } = e;
+        const curve = curves.find(curve => curve.id === selectedCurveId);
+        if (curve) {
+            curve.controlPoint.x = x;
+            curve.controlPoint.y = y;
+            redrawCanvas();
+        }
+    }
+    canvas.addEventListener('mouseup', function () {
+        isDraggingControlPoint = false;
+    });
+
+
     canvas.addEventListener('mousemove', function (e) {
         const { offsetX: x, offsetY: y } = e;
         let onLine = lines.some(line => isLineClicked(line, x, y));
@@ -588,6 +609,21 @@ document.addEventListener('DOMContentLoaded', function () {
             canvas.style.cursor = 'default';
         }
 
+        moveControlPoint(e);
+
+        let hoverFound = false;
+        curves.forEach(curve => {
+            if (isCurveHovered(curve, e.offsetX, e.offsetY)) {
+                hoveredCurveId = curve.id;
+                hoverFound = true;
+            }
+        });
+
+        if (!hoverFound) {
+            hoveredCurveId = null;
+        }
+
+
         // Existing logic for drawing, moving, or duplicating lines
         if (mode === 'draw') {
             draw(e);
@@ -597,6 +633,14 @@ document.addEventListener('DOMContentLoaded', function () {
             duplicateLine(e);
         } else if (mode === 'freehand') {
             drawFreehand(x, y);
+        } else if (mode === 'curve') {
+            if (isDrawingLine) {
+                currentCurve.endPoint = { x: e.offsetX, y: e.offsetY };
+                redrawCanvas();
+            } else if (isDraggingCurve) {
+                currentCurve.controlPoint = { x: e.offsetX, y: e.offsetY };
+                redrawCanvas();
+            }
         }
     });
 
@@ -607,9 +651,11 @@ document.addEventListener('DOMContentLoaded', function () {
             const { offsetX: x, offsetY: y } = e;
             let lineFound = false;
 
+
             lines.forEach((line, index) => {
                 if (isLineClicked(line, x, y) && !lineFound) {
                     selectedLineIndex = index; // Set the selected line index
+                    selectLine(selectedLineIndex); // Call this function with the index of the clicked line
                     lineFound = true; // Line is found, no need to check further
                     if (!lines[selectedLineIndex].locked) {
                         currentLine = line; // Set currentLine only if it's not locked
@@ -622,12 +668,63 @@ document.addEventListener('DOMContentLoaded', function () {
                 selectedLineIndex = -1; // Deselect line if none is clicked
                 currentLine = null; // Ensure currentLine is null if no line is found
             }
+
+            let curveFound = false;
+            curves.forEach(function (curve, index) {
+                if (isCurveClicked(curve, e.offsetX, e.offsetY)) {
+                    selectedCurveId = curve.id;
+                    curveFound = true;
+                }
+            });
+
+            curves.forEach(function (curve) {
+                if (isControlPointClicked(curve, e.offsetX, e.offsetY)) {
+                    selectedCurveId = curve.id;
+                    isDraggingControlPoint = true; // Set a flag to indicate dragging
+                }
+            });
+
+
+            if (!curveFound) {
+                selectedCurveId = null;
+            }
+
             redrawCanvas(); // Redraw canvas to reflect the selection change
         } else if (mode === 'duplicate') {
             startDuplicating(e);
         } else if (mode === 'freehand') {
             const { offsetX: x, offsetY: y } = e;
             startFreehandDrawing(x, y);
+        } else if (mode === 'curve') {
+            if (e.shiftKey) {
+                let curveFound = false;
+                curves.forEach(function (curve, index) {
+                    if (isCurveClicked(curve, e.offsetX, e.offsetY)) {
+                        console.log("Trying to select curve with ID:", curve.id);
+                        selectedCurveId = curve.id;
+                        curveFound = true;
+                    }
+                });
+
+                if (!curveFound) {
+                    selectedCurveId = null;
+                }
+
+                redrawCanvas();
+            } else if (!isDraggingCurve) {
+                // Start drawing a new curve
+                currentCurve = {
+                    startPoint: { x: e.offsetX, y: e.offsetY },
+                    controlPoint: { x: e.offsetX, y: e.offsetY }, // Initialize control point
+                    endPoint: { x: e.offsetX, y: e.offsetY }, // Initialize end point
+                    effect: selectedLineEffect // Assign the selected effect
+                    // id: curves.length, // Assign an ID to the curve
+                    // width: lineWidth, color: lineColor,
+                    // style: lineStyle, opacity: lineOpacity,
+                    // Add other properties like color and width if necessary
+                };
+                isDrawingLine = true;
+            }
         }
     });
 
@@ -640,6 +737,17 @@ document.addEventListener('DOMContentLoaded', function () {
             stopDuplicating();
         } else if (mode === 'freehand') {
             stopFreehandDrawing();
+        } else if (mode === 'curve') {
+            if (isDrawingLine) {
+                isDrawingLine = false;
+                isDraggingCurve = true; // Switch to curve dragging mode
+            } else if (isDraggingCurve) {
+                isDraggingCurve = false;
+                currentCurve.id = curves.length; // Assign an ID to the curve
+                curves.push(currentCurve); // Save the current curve
+                currentCurve = {}; // Reset current curve
+            }
+            isDraggingControlPoint = false;
         }
     });
 
@@ -658,6 +766,22 @@ document.addEventListener('DOMContentLoaded', function () {
             // Create a mock event object with offsetX and offsetY
             const mockEvent = { offsetX: touchX, offsetY: touchY };
             startDrawing(mockEvent);
+        } else if (mode === 'curve') {
+            const touch = e.touches[0];
+            const touchX = touch.clientX - canvas.getBoundingClientRect().left;
+            const touchY = touch.clientY - canvas.getBoundingClientRect().top;
+
+            currentCurve = {
+                startPoint: { x: touchX, y: touchY },
+                controlPoint: { x: touchX, y: touchY }, // Initialize control point
+                endPoint: { x: touchX, y: touchY }, // Initialize end point
+                id: curves.length, // Assign an ID to the curve
+                color: lineColor,
+                width: lineWidth,
+                effect: selectedLineEffect // Use the selected effect
+            };
+
+            isDrawingLine = true;
         }
     }
 
@@ -670,12 +794,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (mode === 'freehand' && freehandDrawing) {
             freehandPath.points.push([touchX, touchY]);
-            redrawCanvas();
         } else if (mode === 'draw' && drawing) {
             currentLine.x2 = touchX;
             currentLine.y2 = touchY;
-            redrawCanvas();
+        } else if (mode === 'curve' && isDrawingLine) {
+            if (currentCurve) {  // Add this check
+
+                const touch = e.touches[0];
+                const touchX = touch.clientX - canvas.getBoundingClientRect().left;
+                const touchY = touch.clientY - canvas.getBoundingClientRect().top;
+
+                // Update the control and end points of the curve
+                currentCurve.endPoint = { x: touchX, y: touchY };
+                // Optionally, you can update controlPoint for more complex interactions   
+            }
+
         }
+        redrawCanvas();
     }
 
     function handleTouchEnd(e) {
@@ -687,14 +822,501 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         } else if (mode === 'draw') {
             stopDrawing();
+        } else if (mode === 'curve' && currentCurve && currentCurve.startPoint) {
+            curves.push(currentCurve);
+            currentCurve = null; // Reset currentCurve
         }
+
         redrawCanvas(); // Redraw canvas to reflect changes
     }
-    
+
 
     canvas.addEventListener("touchstart", handleTouchStart, false);
     canvas.addEventListener("touchmove", handleTouchMove, false);
     canvas.addEventListener("touchend", handleTouchEnd, false);
 
+
+    // curves
+
+    canvas.addEventListener('dblclick', function (e) {
+        if (mode !== 'curve') return;
+        curves.forEach(function (curve) {
+            if (isCurveClicked(curve, e.offsetX, e.offsetY)) {
+                // Logic to highlight or indicate selection
+                console.log("Selected curve ID:", curve.id);
+                curve.color = 'red'; // Example: Change color to red
+                redrawCanvas();
+            }
+        });
+    });
+
+    document.getElementById('scaleCurveButton').addEventListener('click', function () {
+        const scaleFactor = parseFloat(document.getElementById('scaleFactor').value);
+        if (selectedCurveId !== null && !isNaN(scaleFactor)) {
+            let curve = curves.find(curve => curve.id === selectedCurveId);
+            if (curve) {
+                scaleCurve(curve, scaleFactor);
+                redrawCanvas();
+            }
+        }
+    });
+
+
+    document.getElementById('newCurveButton').addEventListener('click', function () {
+        isDraggingCurve = false; // Exit curve dragging mode
+    });
+
+
+    function scaleCurve(curve, scaleFactor) {
+        // Calculate the center point of the curve
+        let centerX = (curve.startPoint.x + curve.endPoint.x) / 2;
+        let centerY = (curve.startPoint.y + curve.endPoint.y) / 2;
+
+        // Scale the start point, control point, and end point
+        curve.startPoint.x = scalePoint(curve.startPoint.x, centerX, scaleFactor);
+        curve.startPoint.y = scalePoint(curve.startPoint.y, centerY, scaleFactor);
+        curve.controlPoint.x = scalePoint(curve.controlPoint.x, centerX, scaleFactor);
+        curve.controlPoint.y = scalePoint(curve.controlPoint.y, centerY, scaleFactor);
+        curve.endPoint.x = scalePoint(curve.endPoint.x, centerX, scaleFactor);
+        curve.endPoint.y = scalePoint(curve.endPoint.y, centerY, scaleFactor);
+    }
+
+    function scalePoint(pointCoord, centerCoord, scaleFactor) {
+        return centerCoord + (pointCoord - centerCoord) * scaleFactor;
+    }
+
+    function isCurveClicked(curve, clickX, clickY) {
+        const segmentCount = 50; // Number of segments to divide the curve
+        let t, x, y, dx, dy, distance;
+
+        for (let i = 0; i <= segmentCount; i++) {
+            t = i / segmentCount;
+            x = quadraticBezier(t, curve.startPoint.x, curve.controlPoint.x, curve.endPoint.x);
+            y = quadraticBezier(t, curve.startPoint.y, curve.controlPoint.y, curve.endPoint.y);
+
+            dx = x - clickX;
+            dy = y - clickY;
+            distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < 10) { // Threshold for considering a click 'near' the curve
+                return true;
+            }
+        }
+
+        return false;
+    }
+    function isCurveHovered(curve, clickX, clickY) {
+        const segmentCount = 50; // Number of segments to divide the curve
+        let t, x, y, dx, dy, distance;
+
+        for (let i = 0; i <= segmentCount; i++) {
+            t = i / segmentCount;
+            x = quadraticBezier(t, curve.startPoint.x, curve.controlPoint.x, curve.endPoint.x);
+            y = quadraticBezier(t, curve.startPoint.y, curve.controlPoint.y, curve.endPoint.y);
+
+            dx = x - clickX;
+            dy = y - clickY;
+            distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < 10) { // Threshold for considering a click 'near' the curve
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    function quadraticBezier(t, p0, p1, p2) {
+        return (1 - t) * (1 - t) * p0 + 2 * (1 - t) * t * p1 + t * t * p2;
+    }
+
+    document.getElementById('convertToLineButton').addEventListener('click', function () {
+        if (selectedCurveId !== null) {
+            let curve = curves.find(curve => curve.id === selectedCurveId);
+            if (curve) {
+                curve.controlPoint = calculateMidPoint(curve.startPoint, curve.endPoint);
+                redrawCanvas();
+            }
+        }
+    });
+    function calculateMidPoint(point1, point2) {
+        return {
+            x: (point1.x + point2.x) / 2,
+            y: (point1.y + point2.y) / 2
+        };
+    }
+    // export
+
+    function exportToPng() {
+        const dataURL = canvas.toDataURL('image/png');
+        downloadImage(dataURL, 'drawing.png');
+    }
+
+    function exportToJpg() {
+        const dataURL = canvas.toDataURL('image/jpeg');
+        downloadImage(dataURL, 'drawing.jpg');
+    }
+
+    function exportToSvg() {
+        const svgString = convertCanvasToSvgString();
+        const dataURL = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
+        downloadImage(dataURL, 'drawing.svg');
+    }
+    function convertCanvasToSvgString() {
+        let svgString = `<svg width="${canvas.width}" height="${canvas.height}" xmlns="http://www.w3.org/2000/svg">`;
+
+        // Convert lines to SVG
+        lines.forEach(line => {
+            svgString += `<line x1="${line.x1}" y1="${line.y1}" x2="${line.x2}" y2="${line.y2}" stroke="${line.color}" stroke-width="${line.width}" stroke-opacity="${line.opacity}" />`;
+        });
+
+        // Convert curves to SVG
+        curves.forEach(curve => {
+            if (curve.startPoint && curve.controlPoint && curve.endPoint) {
+                svgString += `<path d="M ${curve.startPoint.x},${curve.startPoint.y} Q ${curve.controlPoint.x},${curve.controlPoint.y} ${curve.endPoint.x},${curve.endPoint.y}" fill="none" stroke="${curve.color}" stroke-width="${curve.width}" />`;
+            }
+        });
+
+        // Convert freehand paths to SVG
+        freehandPaths.forEach(path => {
+            let pathData = 'M ' + path.points.map(p => p.join(',')).join(' L ');
+            svgString += `<path d="${pathData}" stroke="${path.color}" stroke-width="${path.width}" fill="none" />`;
+        });
+
+        svgString += `</svg>`;
+        return svgString;
+    }
+
+
+    function downloadImage(dataURL, filename) {
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = dataURL;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    document.getElementById('exportPng').addEventListener('click', exportToPng);
+    document.getElementById('exportJpg').addEventListener('click', exportToJpg);
+    document.getElementById('exportSvg').addEventListener('click', exportToSvg);
+
+    // effect
+
+    function drawLineWithBlur(line) {
+        for (let i = 0; i < 5; i++) {
+            ctx.beginPath();
+            ctx.moveTo(line.x1 + i, line.y1 + i);
+            ctx.lineTo(line.x2 + i, line.y2 + i);
+
+            ctx.shadowColor = line.color;
+            ctx.shadowBlur = i * 2; // Increasing blur
+
+            ctx.strokeStyle = line.color;
+            ctx.lineWidth = line.width;
+            ctx.stroke();
+        }
+
+        // Reset shadow to default
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+    }
+
+
+    function drawLineWithGlow(line) {
+        ctx.beginPath();
+        ctx.moveTo(line.x1, line.y1);
+        ctx.lineTo(line.x2, line.y2);
+
+        ctx.shadowColor = 'rgba(255, 255, 0, 0.7)'; // Bright yellow color for glow
+        ctx.shadowBlur = 15; // Higher blur for a glow effect
+
+        ctx.strokeStyle = line.color;
+        ctx.lineWidth = line.width;
+        ctx.stroke();
+
+        // Reset shadow to default
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+    }
+
+
+    function drawLineWithShadow(line) {
+        ctx.beginPath();
+        ctx.moveTo(line.x1, line.y1);
+        ctx.lineTo(line.x2, line.y2);
+
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)'; // Shadow color
+        ctx.shadowBlur = 10; // Blur level
+        ctx.shadowOffsetX = 5; // Horizontal offset
+        ctx.shadowOffsetY = 5; // Vertical offset
+
+        ctx.strokeStyle = line.color;
+        ctx.lineWidth = line.width;
+        ctx.stroke();
+
+        // Reset shadow to default
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+    }
+
+    function drawLine(line) {
+        console.log("Drawing line with effect:", line.effect); // Debugging
+        ctx.globalCompositeOperation = blendMode; // Set blend mode
+        line.globalCompositeOperation = blendMode;
+        switch (line.effect) {
+            case 'shadow':
+                drawLineWithShadow(line);
+                break;
+            case 'glow':
+                drawLineWithGlow(line);
+                break;
+            case 'blur':
+                drawLineWithBlur(line);
+                break;
+            default:
+                drawRegularLine(line);
+                break;
+        }
+    }
+
+
+    function drawRegularLine(line) {
+        ctx.beginPath();
+        ctx.moveTo(line.x1, line.y1);
+        ctx.lineTo(line.x2, line.y2);
+        ctx.strokeStyle = line.color;
+        ctx.lineWidth = line.width;
+        ctx.stroke();
+    }
+
+
+
+    // draw curve
+    function drawCurve(curve) {
+        if (!curve) {
+            console.error("Invalid curve object:", curve);
+            return;
+        }
+        switch (curve.effect) {
+            case 'shadow':
+                drawCurveWithShadow(curve);
+                break;
+            case 'glow':
+                drawCurveWithGlow(curve);
+                break;
+            case 'blur':
+                drawCurveWithBlur(curve);
+                break;
+            default:
+                drawRegularCurve(curve);
+                break;
+        }
+    }
+
+    function drawRegularCurve(curve) {
+        if (!curve || !curve.startPoint || !curve.controlPoint || !curve.endPoint) {
+            console.error("Invalid curve object:", curve);
+            return;
+        }
+        ctx.beginPath(); // Start a new path
+
+        // Move to the starting point of the curve
+        ctx.moveTo(curve.startPoint.x, curve.startPoint.y);
+
+        // Draw the quadratic curve
+        ctx.quadraticCurveTo(
+            curve.controlPoint.x, curve.controlPoint.y,
+            curve.endPoint.x, curve.endPoint.y
+        );
+
+        // Set the stroke style and line width
+        ctx.strokeStyle = curve.color;
+        ctx.lineWidth = curve.width;
+
+        // Stroke the path on the canvas
+        ctx.stroke();
+    }
+    function drawCurveWithGlow(curve) {
+        ctx.save(); // Save the current state of the context
+
+        ctx.beginPath();
+        ctx.moveTo(curve.startPoint.x, curve.startPoint.y);
+        ctx.quadraticCurveTo(curve.controlPoint.x, curve.controlPoint.y, curve.endPoint.x, curve.endPoint.y);
+
+        ctx.shadowColor = 'rgba(255, 255, 0, 0.7)'; // Bright yellow color for glow
+        ctx.shadowBlur = 15; // Higher blur for a glow effect
+
+        ctx.strokeStyle = curve.color;
+        ctx.lineWidth = curve.width;
+        ctx.opacity = lineOpacity;
+        ctx.stroke();
+
+        ctx.restore(); // Restore the context state to remove glow for other elements
+    }
+
+    function drawCurveWithShadow(curve) {
+        ctx.save(); // Save the current state of the context
+
+        ctx.beginPath();
+        ctx.moveTo(curve.startPoint.x, curve.startPoint.y);
+        ctx.quadraticCurveTo(curve.controlPoint.x, curve.controlPoint.y, curve.endPoint.x, curve.endPoint.y);
+
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5])'; // Shadow color
+        ctx.shadowBlur = 10; // Blur level
+        ctx.shadowOffsetX = 5; // Horizontal offset
+        ctx.shadowOffsetY = 5; // Vertical offset
+
+        ctx.strokeStyle = curve.color;
+        ctx.lineWidth = curve.width;
+        ctx.opacity = lineOpacity;
+        ctx.stroke();
+
+        ctx.restore(); // Restore the context state to remove shadow for other elements
+    }
+
+
+    function drawCurveWithBlur(curve) {
+        for (let i = 0; i < 5; i++) {
+            ctx.save(); // Save the current state of the context
+
+            ctx.beginPath();
+            ctx.moveTo(curve.startPoint.x, curve.startPoint.y);
+            ctx.quadraticCurveTo(curve.controlPoint.x, curve.controlPoint.y, curve.endPoint.x, curve.endPoint.y);
+
+            ctx.shadowColor = curve.color;
+            ctx.shadowBlur = i * 2; // Increasing blur
+
+            ctx.strokeStyle = curve.color;
+            ctx.lineWidth = curve.width;
+            ctx.stroke();
+
+            ctx.restore(); // Restore the context state for each iteration
+        }
+    }
+
+
+
+    // Add these to your event listeners for the respective buttons/controls
+    document.getElementById('moveLineForward').addEventListener('click', moveLineForward);
+    document.getElementById('moveLineBackward').addEventListener('click', moveLineBackward);
+
+    document.getElementById('enableSnapping').addEventListener('change', function () {
+        isSnappingEnabled = this.checked;
+        redrawCanvas(); // Redraw the canvas if needed
+    });
+
+    document.getElementById('gridSizeInput').addEventListener('input', function () {
+        gridSize = parseInt(this.value, 10);
+        redrawCanvas(); // Redraw the canvas to update the grid
+    });
+
+    document.getElementById('snapDistanceInput').addEventListener('input', function () {
+        snapDistance = parseInt(this.value, 10);
+    });
+
+    // Event listener for line width adjustment
+    document.getElementById('lineWidth').addEventListener('change', function (e) {
+        lineWidth = parseInt(e.target.value, 10);
+    });
+
+    document.getElementById('lineColor').addEventListener('change', function (e) {
+        lineColor = e.target.value;
+    });
+
+    // Event listener for line style change
+    document.getElementById('lineStyle').addEventListener('change', function (e) {
+        lineStyle = e.target.value;
+    });
+
+    // Event listener for line opacity change
+    document.getElementById('lineOpacity').addEventListener('change', function (e) {
+        lineOpacity = parseFloat(e.target.value);
+    });
+
+    document.getElementById('lockButton').addEventListener('click', function () {
+        if (selectedLineIndex !== -1) {
+            toggleLockLine(selectedLineIndex);
+        }
+    });
+    document.getElementById('annotateButton').addEventListener('click', function () {
+        const text = document.getElementById('annotationText').value;
+        if (selectedLineIndex !== -1 && text) {
+            annotateLine(selectedLineIndex, text);
+            document.getElementById('annotationText').value = ''; // Clear the input field
+        }
+    });
+
+    // Function to select a line
+    function selectLine(index) {
+        selectedLineIndex = index;
+
+        // Update the slider to reflect the selected line's thickness
+        if (selectedLineIndex >= 0 && selectedLineIndex < lines.length) {
+            const slider = document.getElementById('lineThicknessSlider');
+            slider.value = lines[selectedLineIndex].width;
+        }
+    }
+
+    // Event listener for line thickness adjustment
+    document.getElementById('lineThicknessSlider').addEventListener('input', function (e) {
+        if (selectedLineIndex >= 0 && selectedLineIndex < lines.length) {
+            lines[selectedLineIndex].width = e.target.value; // Change only the selected line's width
+            redrawCanvas();
+        }
+    });
+
+    function adjustLineLength(line, change) {
+        // Calculate the current angle of the line
+        const angle = Math.atan2(line.y2 - line.y1, line.x2 - line.x1);
+        const currentLength = Math.sqrt((line.x2 - line.x1) ** 2 + (line.y2 - line.y1) ** 2);
+        const newLength = currentLength + change;
+
+        // Update the end point based on the new length
+        line.x2 = line.x1 + newLength * Math.cos(angle);
+        line.y2 = line.y1 + newLength * Math.sin(angle);
+
+        // Redraw the line on the canvas
+        redrawCanvas();
+    }
+
+
+    // trim
+    document.getElementById('extendLine').addEventListener('click', function () {
+        if (selectedLineIndex !== -1) {
+            adjustLineLength(lines[selectedLineIndex], 10); // Extend by 10 units
+        }
+    });
+
+    document.getElementById('shortenLine').addEventListener('click', function () {
+        if (selectedLineIndex !== -1) {
+            adjustLineLength(lines[selectedLineIndex], -10); // Shorten by 10 units
+        }
+    });
+
+
+
+    document.getElementById('lineEffect').addEventListener('change', function (e) {
+        selectedLineEffect = e.target.value;
+    });
+
+    let blendMode = 'source-over';
+
+    document.getElementById('blendModeSelector').addEventListener('change', function (e) {
+        blendMode = e.target.value;
+    });
+    function clearCanvas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the entire canvas
+        lines = []; // Reset the lines array if you have one
+        curves = []; // Reset the curves array if you have one
+        freehandPaths = []; // Reset the freehand paths array if you have one
+        // Add any other resets for elements you are tracking
+        redrawCanvas(); // Redraw the canvas if necessary
+    }
+
+    // Event listener for the clear canvas button
+    document.getElementById('clearCanvas').addEventListener('click', clearCanvas);
 
 });

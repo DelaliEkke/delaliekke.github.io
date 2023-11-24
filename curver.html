@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<canvas id="myCanvas" width="600" height="400" style="border:1px solid #000000;">
+Your browser does not support the Canvas element.
+</canvas>
+<button id="newCurveButton">Start New Curve</button>
+
+<script>
+var canvas = document.getElementById('myCanvas');
+var ctx = canvas.getContext('2d');
+var curves = [];
+var currentCurve = {};
+var isDrawingLine = false;
+var isDraggingCurve = false;
+
+canvas.addEventListener('mousedown', function(e) {
+    if (!isDraggingCurve) {
+        currentCurve.startPoint = { x: e.offsetX, y: e.offsetY };
+        currentCurve.controlPoint = currentCurve.startPoint; // Initialize control point
+        currentCurve.endPoint = currentCurve.startPoint; // Initialize end point
+        isDrawingLine = true;
+    } else {
+        currentCurve.controlPoint = { x: e.offsetX, y: e.offsetY };
+    }
+});
+
+canvas.addEventListener('mousemove', function(e) {
+    if (isDrawingLine) {
+        currentCurve.endPoint = { x: e.offsetX, y: e.offsetY };
+    } else if (isDraggingCurve) {
+        currentCurve.controlPoint = { x: e.offsetX, y: e.offsetY };
+    }
+    redrawCurves();
+});
+
+canvas.addEventListener('mouseup', function(e) {
+    if (isDrawingLine) {
+        isDrawingLine = false;
+        isDraggingCurve = true; // Switch to curve dragging mode
+    } else if (isDraggingCurve) {
+        isDraggingCurve = false;
+        curves.push(currentCurve); // Save the current curve
+        currentCurve = {}; // Reset current curve
+    }
+});
+
+document.getElementById('newCurveButton').addEventListener('click', function() {
+    isDraggingCurve = false; // Exit curve dragging mode
+});
+
+function redrawCurves() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+    curves.forEach(function(curve) {
+        drawCurve(curve); // Redraw each stored curve
+    });
+    if (isDrawingLine || isDraggingCurve) {
+        drawCurve(currentCurve); // Draw the current curve
+    }
+}
+
+function drawCurve(curve) {
+    if (!curve.startPoint) return; // Skip if the curve has no start point
+    ctx.beginPath();
+    ctx.moveTo(curve.startPoint.x, curve.startPoint.y);
+    ctx.quadraticCurveTo(curve.controlPoint.x, curve.controlPoint.y, curve.endPoint.x, curve.endPoint.y);
+    ctx.stroke();
+}
+</script>
+
+</body>
+</html>
